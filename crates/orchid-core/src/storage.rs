@@ -1,6 +1,7 @@
 use anyhow::Result;
 use rusqlite::Connection;
 use std::path::Path;
+use uuid::Uuid;
 
 use crate::session::Session;
 
@@ -8,7 +9,7 @@ use crate::session::Session;
 pub trait Storage {
     fn init(&self) -> Result<()>;
     fn save_session(&self, session: &Session) -> Result<()>;
-    fn load_session(&self, id: &uuid::Uuid) -> Result<Option<Session>>;
+    fn load_session(&self, id: &Uuid) -> Result<Option<Session>>;
     fn list_sessions(&self) -> Result<Vec<Session>>;
 }
 
@@ -27,6 +28,44 @@ impl SqliteStorage {
         storage.init()?;
         Ok(storage)
     }
+
+    pub fn save_artifact(
+        &self,
+        id: &Uuid,
+        artifact_type: &str,
+        content: &str,
+        metadata: Option<&str>,
+    ) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO artifacts (id, artifact_type, content, metadata)
+             VALUES (?1, ?2, ?3, ?4)",
+            (id.to_string(), artifact_type, content, metadata),
+        )?;
+        Ok(())
+    }
+
+    pub fn list_artifacts_by_type(
+        &self,
+        artifact_type: &str,
+    ) -> Result<Vec<(Uuid, String, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, content, created_at FROM artifacts WHERE artifact_type = ?1 ORDER BY created_at DESC",
+        )?;
+        let rows = stmt.query_map([artifact_type], |row| {
+            let id: String = row.get(0)?;
+            let content: String = row.get(1)?;
+            let created_at: String = row.get(2)?;
+            Ok((id, content, created_at))
+        })?;
+
+        let mut results = Vec::new();
+        for row in rows {
+            let (id, content, created_at) = row?;
+            let uuid = Uuid::parse_str(&id).unwrap_or_else(|_| Uuid::new_v4());
+            results.push((uuid, content, created_at));
+        }
+        Ok(results)
+    }
 }
 
 impl Storage for SqliteStorage {
@@ -38,6 +77,15 @@ impl Storage for SqliteStorage {
                 data TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id TEXT PRIMARY KEY,
+                session_id TEXT,
+                artifact_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
             CREATE TABLE IF NOT EXISTS migrations (
@@ -65,7 +113,7 @@ impl Storage for SqliteStorage {
         Ok(())
     }
 
-    fn load_session(&self, id: &uuid::Uuid) -> Result<Option<Session>> {
+    fn load_session(&self, id: &Uuid) -> Result<Option<Session>> {
         let mut stmt = self
             .conn
             .prepare("SELECT data FROM sessions WHERE id = ?1")?;
