@@ -1,22 +1,22 @@
 # TUI Dashboard
 
-## Starting the TUI
+## Status
 
-```bash
-orchid workspace
-```
+The TUI is **not yet implemented**. Running `orchid workspace` will print a placeholder message.
 
-## Controls
+## Planned Design
 
-| Key   | Action          |
-|-------|-----------------|
-| `q`   | Quit            |
-| `j/k` | Navigate up/down |
-| `Tab` | Switch panels    |
+Zellij-inspired pane layout with:
+
+- Shell pane — embedded terminal
+- Agent chat pane — interact with agents
+- File tree pane — Yazi-inspired file navigator
+- Task list pane — current session tasks
 
 ## Architecture
 
-The TUI is built on:
+The TUI will be built on:
 
 - **Ratatui** — terminal rendering framework
 - **Crossterm** — cross-platform terminal backend
+- **orchid-core** — shared config, storage, and session layer

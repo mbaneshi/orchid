@@ -2,22 +2,47 @@
 
 ## Overview
 
-The workflow engine orchestrates multi-step pipelines by composing agents in sequence. Each step's output feeds into the next step's input.
+The workflow engine orchestrates multi-step pipelines by composing agents. Each step references an agent by name and declares dependencies on other steps.
 
-## Built-in Workflows
+## Data Model
+
+```rust
+pub struct Workflow {
+    pub id: Uuid,
+    pub name: String,
+    pub trigger: Trigger,
+    pub steps: Vec<Step>,
+}
+
+pub enum Trigger {
+    Manual,
+    Schedule { cron: String },
+    Webhook { path: String },
+}
+
+pub struct Step {
+    pub id: Uuid,
+    pub name: String,
+    pub agent_name: String,
+    pub depends_on: Vec<Uuid>,
+}
+```
+
+## Built-in Flows
 
 ### dev-to-content
 
-Chains `GitSummarizerAgent` → `ContentDrafterAgent` to automatically transform git commits into polished developer content.
+Chains `GitSummarizerAgent` → `ContentDrafterAgent` to automatically transform git commits into social media content.
 
 ```bash
-orchid flow dev-to-content
+orchid flow -n dev-to-content -r /path/to/repo
 ```
 
-## Workflow Definition
+**Step 1:** Summarize git history (commits + diffs → structured summary)
+**Step 2:** Draft content (summary → tweet + LinkedIn post + blog paragraph)
 
-Workflows are defined as JSON-serializable specifications listing the steps, their agents, and data flow between them.
+Both outputs are saved as artifacts in SQLite.
 
-## Extending Workflows
+## Current State
 
-Create new workflows by composing existing agents or custom agents into pipeline definitions.
+The `Workflow`/`Trigger`/`Step` data model exists but flows are currently hardcoded in `main.rs`. The next phase will wire up the workflow engine to dynamically execute workflow definitions from storage.

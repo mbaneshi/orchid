@@ -13,43 +13,53 @@ One binary. One database. Agentic workflows from commit to content.
 ## Architecture
 
 ```
-orchid (CLI)
-├── orchid-web      — Axum web server & REST API
-├── orchid-tui      — Ratatui terminal dashboard
-├── orchid-workflow  — Multi-step workflow orchestration
-├── orchid-agent    — Agent framework + Anthropic LLM integration
-└── orchid-core     — Config, SQLite storage, serialization, utilities
+orchid (CLI binary)
+├── orchid-web        — Axum web server (localhost:3100)
+├── orchid-tui        — Ratatui terminal dashboard (planned)
+├── orchid-workflow   — Trigger/step/agent workflow DAG
+├── orchid-agent      — Agent framework, tools, LLM clients
+│   ├── AnthropicClient  — Direct API (requires credits)
+│   └── ClaudeCliClient  — Claude Max subscription (free via CLI)
+└── orchid-core       — Config (~/.orchid/), SQLite storage, sessions
 ```
 
 ## Features
 
 ### CLI Commands
 
-| Command     | Description                                |
-|-------------|--------------------------------------------|
-| `web`       | Launch the web UI server                   |
-| `workspace` | Open the TUI workspace                     |
-| `agent`     | Run individual agents (git-summarizer, content-drafter) |
-| `flow`      | Execute end-to-end pipelines (dev-to-content) |
-| `version`   | Show version info                          |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `agent` | Run individual agents | `orchid agent -n git-summarizer -r .` |
+| `flow`  | Execute end-to-end pipelines | `orchid flow -n dev-to-content -r .` |
+| `web`   | Launch the web UI server | `orchid web` |
+| `workspace` | Open the TUI workspace | `orchid workspace` |
+| `version` | Show version info | `orchid version` |
 
 ### Agent Framework
 
-- **GitSummarizerAgent** — summarizes git history into structured changelogs
-- **ContentDrafterAgent** — drafts developer-facing content from structured input
-- **Anthropic LLM client** — native Claude integration for all agents
+- **GitSummarizerAgent** — analyzes git log + diffs, produces structured summaries via LLM
+- **ContentDrafterAgent** — transforms summaries into tweet, LinkedIn post, and blog paragraph
+- **Tool system** — `GitLogTool` and `GitDiffTool` for repo analysis
+- **AgentRunner** — drives multi-step agent execution loops
+
+### LLM Integration
+
+Two authentication methods:
+
+1. **Claude Max subscription** (default) — spawns `claude` CLI with `CLAUDE_USE_SUBSCRIPTION=true`. No API credits needed.
+2. **Anthropic API key** — direct HTTP calls via `ANTHROPIC_API_KEY` env var or `~/.orchid/config.toml`
 
 ### Workflow Engine
 
-- Multi-step pipeline orchestration
-- Agent composition and chaining
-- JSON-defined workflow definitions
+- `Workflow` / `Trigger` / `Step` DAG model (manual, cron, webhook triggers)
+- `dev-to-content` flow: git summarizer → content drafter
 
-### Three Surfaces
+### Storage
 
-- **CLI** — scriptable commands for CI/CD and terminal workflows
-- **TUI** — interactive ratatui dashboard with keyboard navigation
-- **Web** — Axum-powered REST API and web interface
+- SQLite via rusqlite (bundled, no system dependency)
+- `sessions` table for Code/Content/Relationship sessions
+- `artifacts` table for agent outputs (summaries, drafts)
+- Config at `~/.orchid/config.toml`
 
 ---
 
@@ -61,11 +71,34 @@ git clone https://github.com/mbaneshi/orchid.git
 cd orchid
 cargo build --release
 
-# Run the CLI
-cargo run -- version
-cargo run -- web        # start web server
-cargo run -- agent      # run an agent
-cargo run -- flow       # execute a workflow pipeline
+# Run the full dev-to-content pipeline (uses Claude Max if available)
+./target/release/orchid flow -n dev-to-content -r .
+
+# Run individual agents
+./target/release/orchid agent -n git-summarizer -r /path/to/repo
+./target/release/orchid agent -n content-drafter -i "your summary text"
+
+# Start the web dashboard
+./target/release/orchid web
+# Open http://localhost:3100
+```
+
+### LLM Setup
+
+If you have Claude Code with a Max subscription, it works out of the box — no configuration needed.
+
+Otherwise, set an API key:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Or add to `~/.orchid/config.toml`:
+
+```toml
+[llm]
+api_key = "sk-ant-..."
+model = "claude-sonnet-4-20250514"
 ```
 
 ## Documentation
@@ -76,20 +109,23 @@ Full documentation is available at [mbaneshi.github.io/orchid](https://mbaneshi.
 
 ## Project Status
 
-| Phase   | Focus                                          | Status      |
-|---------|-------------------------------------------------|-------------|
-| Phase 0 | Foundation — core crates, agent abstraction, CLI | Done        |
-| Phase 1 | Agent implementations + LLM integration          | Done        |
-| Phase 2 | Workflows, Web API, TUI, polish                  | In Progress |
+| Phase   | Focus | Status |
+|---------|-------|--------|
+| Phase 0 | Foundation — workspace, core crates, CLI skeleton | Done |
+| Phase 1 | Working agents + LLM integration + git tools | Done |
+| Phase 2 | Claude Max auth, web landing page, artifact storage | Done |
+| Phase 3 | TUI workspace, SvelteKit frontend, more agents | Next |
 
 ## By the Numbers
 
-| Metric       | Value                |
-|--------------|----------------------|
-| Crates       | 6                    |
-| Surfaces     | 3 (CLI, TUI, Web)   |
-| Agents       | 2 (+ extensible)    |
-| License      | MIT                  |
+| Metric | Value |
+|--------|-------|
+| Crates | 6 |
+| Rust source files | 21 |
+| Surfaces | 3 (CLI, TUI, Web) |
+| Agents | 2 (+ extensible) |
+| LLM providers | 2 (API + CLI/Max) |
+| License | MIT |
 
 ---
 

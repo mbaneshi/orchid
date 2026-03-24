@@ -1,27 +1,39 @@
 # Quick Start
 
-## Run the CLI
+## Run the Full Pipeline
+
+The `dev-to-content` flow summarizes your git history and drafts social media content:
 
 ```bash
-# Show version
-cargo run -- version
-
-# Start the web server
-cargo run -- web
-
-# Run an agent
-cargo run -- agent git-summarizer
-
-# Execute a workflow pipeline
-cargo run -- flow dev-to-content
+orchid flow -n dev-to-content -r /path/to/your/repo
 ```
 
-## Environment Setup
+This runs two agents in sequence:
+1. **GitSummarizerAgent** — fetches commits + diffs, sends to Claude for summary
+2. **ContentDrafterAgent** — drafts a tweet, LinkedIn post, and blog paragraph
 
-Set your Anthropic API key for agent LLM integration:
+## Run Individual Agents
 
 ```bash
-export ANTHROPIC_API_KEY="your-key-here"
+# Summarize git history
+orchid agent -n git-summarizer -r /path/to/repo
+
+# Draft content from a summary
+orchid agent -n content-drafter -i "your summary text here"
+```
+
+## Start the Web Dashboard
+
+```bash
+orchid web
+# Open http://localhost:3100
+```
+
+## Check Health
+
+```bash
+curl http://localhost:3100/health
+# orchid ok
 ```
 
 ## What Next?
