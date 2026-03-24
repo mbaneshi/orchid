@@ -1,0 +1,13 @@
+[book]
+title = "Orchid — Agentic Dev OS"
+authors = ["mbaneshi"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "rust"
+git-repository-url = "https://github.com/mbaneshi/orchid"
+edit-url-template = "https://github.com/mbaneshi/orchid/edit/main/docs/{path}"

@@ -1,78 +1,98 @@
+# Orchid — Agentic Dev OS
 
-  Vision
+A single Rust binary that orchestrates AI agents, workflows, and developer tools into a unified operating system for software development.
 
-  Nexus is a single Rust binary that gives you a complete picture of your machine:
-  - Discovery — deep-index your entire home directory with instant full-text search
-  - Config Management — backup, diff, restore, and provision all 25 tools in ~/.config
-  - AI Integration — ask natural language questions about your filesystem via Claude
-  - Three surfaces — CLI, TUI dashboard, and Web UI — all sharing the same 8-crate core
+## Vision
 
-  One binary. One database. Complete picture of your machine.
+Orchid gives you a composable agent framework with three surfaces — **CLI**, **TUI dashboard**, and **Web UI** — all sharing the same 6-crate core.
 
-  ---
-  The 3-Phase Plan
+One binary. One database. Agentic workflows from commit to content.
 
-  ┌─────────┬──────────────────────────────────────────────────────┬─────────────┐
-  │  Phase  │                        Focus                         │   Status    │
-  ├─────────┼──────────────────────────────────────────────────────┼─────────────┤
-  │ Phase 0 │ Foundation — scan, index, search, config backup, CLI │ Done        │
-  ├─────────┼──────────────────────────────────────────────────────┼─────────────┤
-  │ Phase 1 │ Watcher daemon + AI integration                      │ Done        │
-  ├─────────┼──────────────────────────────────────────────────────┼─────────────┤
-  │ Phase 2 │ Surfaces — TUI, Web API, frontend, polish            │ In Progress │
-  └─────────┴──────────────────────────────────────────────────────┴─────────────┘
+---
 
-  ---
-  What's Done (Phase 0 + 1 + 2 partial)
+## Architecture
 
-  Core infrastructure
-  - 8-crate workspace, ~9,000+ lines of Rust
-  - SQLite WAL + FTS5 database (9 tables)
-  - 34 tests passing, 0 clippy warnings
+```
+orchid (CLI)
+├── orchid-web      — Axum web server & REST API
+├── orchid-tui      — Ratatui terminal dashboard
+├── orchid-workflow  — Multi-step workflow orchestration
+├── orchid-agent    — Agent framework + Anthropic LLM integration
+└── orchid-core     — Config, SQLite storage, serialization, utilities
+```
 
-  17 CLI commands
-  - scan, search, stats, changes
-  - config list/show/backup/snapshots/restore/diff/init/path
-  - config profile save/list/apply/delete
-  - daemon start/stop/status
-  - ask (AI), tui, serve
+## Features
 
-  4 TUI screens (built this session)
-  - Overview with category breakdown
-  - Configs with j/k navigation + syntax-highlighted file viewer
-  - Interactive search with live FTS5 results
-  - Recent changes panel
+### CLI Commands
 
-  10 API endpoints (built this session)
-  - health, stats, search, config CRUD, daemon status, changes
+| Command     | Description                                |
+|-------------|--------------------------------------------|
+| `web`       | Launch the web UI server                   |
+| `workspace` | Open the TUI workspace                     |
+| `agent`     | Run individual agents (git-summarizer, content-drafter) |
+| `flow`      | Execute end-to-end pipelines (dev-to-content) |
+| `version`   | Show version info                          |
 
-  Daemon → DB wiring (built this session)
-  - File changes persisted to database
-  - Auto-snapshot on config directory changes
+### Agent Framework
 
-  ---
-  What Remains (Phase 2 completion)
+- **GitSummarizerAgent** — summarizes git history into structured changelogs
+- **ContentDrafterAgent** — drafts developer-facing content from structured input
+- **Anthropic LLM client** — native Claude integration for all agents
 
-  1. SvelteKit frontend scaffold — pnpm + Tailwind, pages for dashboard, search, config browser
-  2. Embed frontend in binary — rust-embed so nexus serve serves the SPA
-  3. nexus config export/import — portable tar.gz for machine migration
-  4. Syntax highlighting in CLI — nexus config show with syntect colors
+### Workflow Engine
 
-  ---
-  By the Numbers
+- Multi-step pipeline orchestration
+- Agent composition and chaining
+- JSON-defined workflow definitions
 
-  ┌───────────────┬─────────────────────┬───────────────────────────┐
-  │    Metric     │ Before this session │           After           │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ Tests         │ 17                  │ 34                        │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ TUI screens   │ 3 (1 stub)          │ 4 (all interactive)       │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ API endpoints │ 3                   │ 10                        │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ CLI commands  │ 16                  │ 17                        │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ Daemon → DB   │ logging only        │ persists + auto-snapshots │
-  ├───────────────┼─────────────────────┼───────────────────────────┤
-  │ Source files  │ ~37                 │ ~50                       │
-  └───────────────┴─────────────────────┴───────────────────────────┘
+### Three Surfaces
+
+- **CLI** — scriptable commands for CI/CD and terminal workflows
+- **TUI** — interactive ratatui dashboard with keyboard navigation
+- **Web** — Axum-powered REST API and web interface
+
+---
+
+## Quick Start
+
+```bash
+# Clone and build
+git clone https://github.com/mbaneshi/orchid.git
+cd orchid
+cargo build --release
+
+# Run the CLI
+cargo run -- version
+cargo run -- web        # start web server
+cargo run -- agent      # run an agent
+cargo run -- flow       # execute a workflow pipeline
+```
+
+## Documentation
+
+Full documentation is available at [mbaneshi.github.io/orchid](https://mbaneshi.github.io/orchid/).
+
+---
+
+## Project Status
+
+| Phase   | Focus                                          | Status      |
+|---------|-------------------------------------------------|-------------|
+| Phase 0 | Foundation — core crates, agent abstraction, CLI | Done        |
+| Phase 1 | Agent implementations + LLM integration          | Done        |
+| Phase 2 | Workflows, Web API, TUI, polish                  | In Progress |
+
+## By the Numbers
+
+| Metric       | Value                |
+|--------------|----------------------|
+| Crates       | 6                    |
+| Surfaces     | 3 (CLI, TUI, Web)   |
+| Agents       | 2 (+ extensible)    |
+| License      | MIT                  |
+
+---
+
+## License
+
+MIT
