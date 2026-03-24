@@ -1,0 +1,20 @@
+[package]
+name = "orchid"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "orchid"
+path = "src/main.rs"
+
+[dependencies]
+orchid-core.workspace = true
+orchid-agent.workspace = true
+orchid-tui.workspace = true
+orchid-web.workspace = true
+orchid-workflow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

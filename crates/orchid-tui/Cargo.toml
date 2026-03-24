@@ -1,0 +1,11 @@
+[package]
+name = "orchid-tui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+orchid-core.workspace = true
+anyhow.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+tokio.workspace = true

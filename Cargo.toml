@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/orchid",
+    "crates/orchid-core",
+    "crates/orchid-agent",
+    "crates/orchid-tui",
+    "crates/orchid-web",
+    "crates/orchid-workflow",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+orchid-core = { path = "crates/orchid-core" }
+orchid-agent = { path = "crates/orchid-agent" }
+orchid-tui = { path = "crates/orchid-tui" }
+orchid-web = { path = "crates/orchid-web" }
+orchid-workflow = { path = "crates/orchid-workflow" }
+
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+toml = "0.8"
+rusqlite = { version = "0.31", features = ["bundled"] }
+clap = { version = "4", features = ["derive"] }
+axum = "0.7"
+ratatui = "0.28"
+crossterm = "0.28"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+async-trait = "0.1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+dirs = "5"

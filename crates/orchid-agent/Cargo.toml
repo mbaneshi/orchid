@@ -1,0 +1,13 @@
+[package]
+name = "orchid-agent"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+orchid-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+tracing.workspace = true
