@@ -13,4 +13,4 @@ pub use llm_anthropic::{resolve_api_key, AnthropicClient};
 pub use llm_claude_cli::ClaudeCliClient;
 pub use runner::AgentRunner;
 pub use tool::Tool;
-pub use tools::{GitDiffTool, GitLogTool};
+pub use tools::{GitDiffTool, GitHubIssuesTool, GitLogTool};

@@ -2,7 +2,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use uuid::Uuid;
 
-use orchid_agent::agents::{ContentDrafterAgent, GitSummarizerAgent};
+use orchid_agent::agents::{
+    ContentDrafterAgent, CrmIngestionAgent, GitSummarizerAgent, OutreachDrafterAgent,
+    ReplyMonitorAgent,
+};
 use orchid_agent::{resolve_api_key, AgentRunner, AnthropicClient, ClaudeCliClient, LlmClient};
 use orchid_core::{Config, SqliteStorage};
 
@@ -26,13 +29,13 @@ enum Commands {
     Web,
     /// Run an agent
     Agent {
-        /// Agent name: git-summarizer, content-drafter
+        /// Agent name: git-summarizer, content-drafter, reply-monitor, outreach-drafter, crm-ingestion
         #[arg(short, long)]
         name: String,
-        /// Repository path (for git-summarizer)
+        /// Repository path (for git-summarizer) or GitHub repo (for reply-monitor, e.g. owner/name)
         #[arg(short, long)]
         repo: Option<String>,
-        /// Input text (for content-drafter)
+        /// Input text (for content-drafter, outreach-drafter, crm-ingestion)
         #[arg(short, long)]
         input: Option<String>,
     },
@@ -102,8 +105,38 @@ async fn main() -> Result<()> {
                     storage.save_artifact(&Uuid::new_v4(), "content_draft", &output, None)?;
                     println!("{output}");
                 }
+                "reply-monitor" => {
+                    let repo = repo.ok_or_else(|| {
+                        anyhow::anyhow!("--repo is required for reply-monitor (e.g. owner/name)")
+                    })?;
+                    let llm = make_llm(&config)?;
+                    let mut agent = ReplyMonitorAgent::new(repo, llm);
+                    let output = runner.run(&mut agent).await?;
+                    storage.save_artifact(&Uuid::new_v4(), "reply_report", &output, None)?;
+                    println!("{output}");
+                }
+                "outreach-drafter" => {
+                    let input = input.ok_or_else(|| {
+                        anyhow::anyhow!("--input is required for outreach-drafter")
+                    })?;
+                    let llm = make_llm(&config)?;
+                    let mut agent = OutreachDrafterAgent::new(input, llm);
+                    let output = runner.run(&mut agent).await?;
+                    storage.save_artifact(&Uuid::new_v4(), "outreach_draft", &output, None)?;
+                    println!("{output}");
+                }
+                "crm-ingestion" => {
+                    let input = input.ok_or_else(|| {
+                        anyhow::anyhow!("--input is required for crm-ingestion")
+                    })?;
+                    let llm = make_llm(&config)?;
+                    let mut agent = CrmIngestionAgent::new(input, llm);
+                    let output = runner.run(&mut agent).await?;
+                    storage.save_artifact(&Uuid::new_v4(), "crm_records", &output, None)?;
+                    println!("{output}");
+                }
                 other => anyhow::bail!(
-                    "unknown agent: {other}. Available: git-summarizer, content-drafter"
+                    "unknown agent: {other}. Available: git-summarizer, content-drafter, reply-monitor, outreach-drafter, crm-ingestion"
                 ),
             }
         }
