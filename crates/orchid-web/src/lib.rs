@@ -1,7 +1,17 @@
+mod api;
+mod error;
+mod state;
+
+use std::sync::{Arc, Mutex};
+
 use anyhow::Result;
 use axum::response::Html;
 use axum::{routing::get, Router};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
+
+use orchid_core::{Config, SqliteStorage};
+use state::AppState;
 
 async fn index() -> Html<&'static str> {
     Html(
@@ -80,12 +90,27 @@ async fn health() -> &'static str {
 }
 
 pub async fn serve() -> Result<()> {
-    let config = orchid_core::Config::load()?;
+    let config = Config::load()?;
+    let storage = SqliteStorage::open(&config.db_path)?;
+
+    let state = Arc::new(AppState {
+        config: config.clone(),
+        storage: Arc::new(Mutex::new(storage)),
+    });
+
     let addr = format!("{}:{}", config.web.host, config.web.port);
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let app = Router::new()
         .route("/", get(index))
-        .route("/health", get(health));
+        .route("/health", get(health))
+        .merge(api::api_router())
+        .with_state(state)
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     info!("orchid-web listening on {addr}");

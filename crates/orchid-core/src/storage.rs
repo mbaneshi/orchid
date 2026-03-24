@@ -81,6 +81,34 @@ impl SqliteStorage {
         Ok(results)
     }
 
+    pub fn get_artifact(&self, id: &Uuid) -> Result<Option<(String, String, Option<String>, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT artifact_type, content, metadata, created_at FROM artifacts WHERE id = ?1",
+        )?;
+        let mut rows = stmt.query_map([id.to_string()], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, String>(3)?,
+            ))
+        })?;
+
+        match rows.next() {
+            Some(Ok(row)) => Ok(Some(row)),
+            Some(Err(e)) => Err(e.into()),
+            None => Ok(None),
+        }
+    }
+
+    pub fn delete_session(&self, id: &Uuid) -> Result<bool> {
+        let rows = self.conn.execute(
+            "DELETE FROM sessions WHERE id = ?1",
+            [id.to_string()],
+        )?;
+        Ok(rows > 0)
+    }
+
     pub fn list_artifacts_by_type(
         &self,
         artifact_type: &str,
