@@ -44,6 +44,43 @@ impl SqliteStorage {
         Ok(())
     }
 
+    pub fn execute_batch(&self, sql: &str) -> Result<()> {
+        self.conn.execute_batch(sql)?;
+        Ok(())
+    }
+
+    pub fn execute_sql(&self, sql: &str, params: &[&str]) -> Result<()> {
+        self.conn
+            .execute(sql, rusqlite::params_from_iter(params))?;
+        Ok(())
+    }
+
+    pub fn query_one(&self, sql: &str, params: &[&str]) -> Result<Option<String>> {
+        let mut stmt = self.conn.prepare(sql)?;
+        let mut rows = stmt.query_map(rusqlite::params_from_iter(params), |row| {
+            let val: String = row.get(0)?;
+            Ok(val)
+        })?;
+        match rows.next() {
+            Some(Ok(val)) => Ok(Some(val)),
+            Some(Err(e)) => Err(e.into()),
+            None => Ok(None),
+        }
+    }
+
+    pub fn query_all(&self, sql: &str, params: &[&str]) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(params), |row| {
+            let val: String = row.get(0)?;
+            Ok(val)
+        })?;
+        let mut results = Vec::new();
+        for row in rows {
+            results.push(row?);
+        }
+        Ok(results)
+    }
+
     pub fn list_artifacts_by_type(
         &self,
         artifact_type: &str,
