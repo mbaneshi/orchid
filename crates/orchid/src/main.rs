@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use uuid::Uuid;
 
 use orchid_agent::agents::{ContentDrafterAgent, GitSummarizerAgent};
-use orchid_agent::{AgentRunner, AnthropicClient, resolve_api_key};
+use orchid_agent::{resolve_api_key, AgentRunner, AnthropicClient};
 use orchid_core::{Config, SqliteStorage};
 
 #[derive(Parser)]
@@ -51,7 +51,10 @@ enum Commands {
 
 fn make_llm(config: &Config) -> Result<Box<AnthropicClient>> {
     let api_key = resolve_api_key(&config.llm)?;
-    Ok(Box::new(AnthropicClient::new(api_key, config.llm.model.clone())))
+    Ok(Box::new(AnthropicClient::new(
+        api_key,
+        config.llm.model.clone(),
+    )))
 }
 
 #[tokio::main]
@@ -75,7 +78,8 @@ async fn main() -> Result<()> {
 
             match name.as_str() {
                 "git-summarizer" => {
-                    let repo = repo.ok_or_else(|| anyhow::anyhow!("--repo is required for git-summarizer"))?;
+                    let repo = repo
+                        .ok_or_else(|| anyhow::anyhow!("--repo is required for git-summarizer"))?;
                     let llm = make_llm(&config)?;
                     let mut agent = GitSummarizerAgent::new(repo, llm);
                     let output = runner.run(&mut agent).await?;
@@ -83,20 +87,26 @@ async fn main() -> Result<()> {
                     println!("{output}");
                 }
                 "content-drafter" => {
-                    let input = input.ok_or_else(|| anyhow::anyhow!("--input is required for content-drafter"))?;
+                    let input = input.ok_or_else(|| {
+                        anyhow::anyhow!("--input is required for content-drafter")
+                    })?;
                     let llm = make_llm(&config)?;
                     let mut agent = ContentDrafterAgent::new(input, llm);
                     let output = runner.run(&mut agent).await?;
                     storage.save_artifact(&Uuid::new_v4(), "content_draft", &output, None)?;
                     println!("{output}");
                 }
-                other => anyhow::bail!("unknown agent: {other}. Available: git-summarizer, content-drafter"),
+                other => anyhow::bail!(
+                    "unknown agent: {other}. Available: git-summarizer, content-drafter"
+                ),
             }
         }
         Commands::Flow { name, repo } => {
             match name.as_str() {
                 "dev-to-content" => {
-                    let repo = repo.ok_or_else(|| anyhow::anyhow!("--repo is required for dev-to-content flow"))?;
+                    let repo = repo.ok_or_else(|| {
+                        anyhow::anyhow!("--repo is required for dev-to-content flow")
+                    })?;
                     let config = Config::load()?;
                     let storage = SqliteStorage::open(&config.db_path)?;
 

@@ -9,6 +9,8 @@ pub struct AnthropicClient {
     client: reqwest::Client,
     api_key: String,
     model: String,
+    /// If true, use Authorization: Bearer (OAuth) instead of x-api-key
+    use_oauth: bool,
 }
 
 #[derive(Serialize)]
@@ -48,10 +50,12 @@ struct ApiErrorDetail {
 
 impl AnthropicClient {
     pub fn new(api_key: String, model: String) -> Self {
+        let use_oauth = api_key.starts_with("sk-ant-oat");
         Self {
             client: reqwest::Client::new(),
             api_key,
             model,
+            use_oauth,
         }
     }
 }
@@ -80,12 +84,19 @@ impl LlmClient for AnthropicClient {
             messages: api_messages,
         };
 
-        let response = self
+        let mut req = self
             .client
             .post("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
+            .header("content-type", "application/json");
+
+        if self.use_oauth {
+            req = req.header("Authorization", format!("Bearer {}", self.api_key));
+        } else {
+            req = req.header("x-api-key", &self.api_key);
+        }
+
+        let response = req
             .json(&request)
             .send()
             .await
@@ -119,14 +130,62 @@ impl LlmClient for AnthropicClient {
     }
 }
 
-/// Resolve API key from config or environment variable.
+/// Resolve API key with the following priority:
+/// 1. Config file (~/.orchid/config.toml [llm].api_key)
+/// 2. ANTHROPIC_API_KEY env var
+/// 3. Claude Max OAuth token from macOS keychain
 pub fn resolve_api_key(config: &orchid_core::config::LlmConfig) -> Result<String> {
+    // 1. Explicit config
     if let Some(ref key) = config.api_key {
         if !key.is_empty() {
             return Ok(key.clone());
         }
     }
-    std::env::var("ANTHROPIC_API_KEY").context(
-        "ANTHROPIC_API_KEY not set. Set it as an env var or in ~/.orchid/config.toml under [llm].api_key",
+
+    // 2. Environment variable
+    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+        if !key.is_empty() {
+            return Ok(key);
+        }
+    }
+
+    // 3. Claude Max OAuth token from macOS keychain
+    if let Some(token) = read_claude_max_token() {
+        tracing::info!("using Claude Max OAuth token from keychain");
+        return Ok(token);
+    }
+
+    anyhow::bail!(
+        "No API key found. Options:\n\
+         1. Set ANTHROPIC_API_KEY env var\n\
+         2. Add api_key to ~/.orchid/config.toml under [llm]\n\
+         3. Log in to Claude Code with a Max subscription (token read from keychain)"
     )
+}
+
+/// Read the Claude Max OAuth access token from macOS keychain.
+/// Claude Code stores credentials under service "Claude Code-credentials".
+fn read_claude_max_token() -> Option<String> {
+    let output = std::process::Command::new("security")
+        .args([
+            "find-generic-password",
+            "-s",
+            "Claude Code-credentials",
+            "-w",
+        ])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let json_str = String::from_utf8(output.stdout).ok()?;
+    let data: serde_json::Value = serde_json::from_str(json_str.trim()).ok()?;
+
+    // Extract claudeAiOauth.accessToken
+    data.get("claudeAiOauth")
+        .and_then(|oauth| oauth.get("accessToken"))
+        .and_then(|token| token.as_str())
+        .map(|s| s.to_string())
 }

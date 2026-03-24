@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tokio::process::Command;
 
 use crate::tool::Tool;
@@ -38,11 +38,17 @@ impl Tool for GitDiffTool {
             anyhow::bail!("git show failed: {stderr}");
         }
 
-        let mut diff = String::from_utf8_lossy(&output.stdout).to_string();
-        if diff.len() > MAX_DIFF_CHARS {
-            diff.truncate(MAX_DIFF_CHARS);
-            diff.push_str("\n[truncated]");
-        }
+        let diff = String::from_utf8_lossy(&output.stdout).to_string();
+        let diff = if diff.len() > MAX_DIFF_CHARS {
+            // Find a safe char boundary to truncate at
+            let mut end = MAX_DIFF_CHARS;
+            while end > 0 && !diff.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}\n[truncated]", &diff[..end])
+        } else {
+            diff
+        };
 
         Ok(json!({ "diff": diff }))
     }

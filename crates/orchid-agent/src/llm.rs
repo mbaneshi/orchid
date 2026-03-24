@@ -15,7 +15,10 @@ pub struct EchoLlmClient;
 #[async_trait]
 impl LlmClient for EchoLlmClient {
     async fn chat(&self, messages: &[Message]) -> Result<Message> {
-        let last = messages.last().map(|m| m.content.clone()).unwrap_or_default();
+        let last = messages
+            .last()
+            .map(|m| m.content.clone())
+            .unwrap_or_default();
         Ok(Message {
             role: "assistant".to_string(),
             content: format!("[echo] {last}"),

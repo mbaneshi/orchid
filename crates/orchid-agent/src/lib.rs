@@ -8,7 +8,7 @@ pub mod tools;
 
 pub use agent::Agent;
 pub use llm::LlmClient;
-pub use llm_anthropic::{AnthropicClient, resolve_api_key};
+pub use llm_anthropic::{resolve_api_key, AnthropicClient};
 pub use runner::AgentRunner;
 pub use tool::Tool;
 pub use tools::{GitDiffTool, GitLogTool};

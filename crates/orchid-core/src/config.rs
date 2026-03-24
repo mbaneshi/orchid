@@ -95,8 +95,7 @@ impl Config {
     pub fn load() -> Result<Self> {
         let path = orchid_home().join("config.toml");
         if path.exists() {
-            let contents =
-                std::fs::read_to_string(&path).context("failed to read config.toml")?;
+            let contents = std::fs::read_to_string(&path).context("failed to read config.toml")?;
             let config: Config =
                 toml::from_str(&contents).context("failed to parse config.toml")?;
             Ok(config)

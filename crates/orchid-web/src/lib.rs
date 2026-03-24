@@ -1,6 +1,6 @@
 use anyhow::Result;
 use axum::response::Html;
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use tracing::info;
 
 async fn index() -> Html<&'static str> {
