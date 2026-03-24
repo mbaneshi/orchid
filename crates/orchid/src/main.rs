@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use uuid::Uuid;
 
 use orchid_agent::agents::{ContentDrafterAgent, GitSummarizerAgent};
-use orchid_agent::{resolve_api_key, AgentRunner, AnthropicClient};
+use orchid_agent::{resolve_api_key, AgentRunner, AnthropicClient, ClaudeCliClient, LlmClient};
 use orchid_core::{Config, SqliteStorage};
 
 #[derive(Parser)]
@@ -49,12 +49,18 @@ enum Commands {
     Version,
 }
 
-fn make_llm(config: &Config) -> Result<Box<AnthropicClient>> {
-    let api_key = resolve_api_key(&config.llm)?;
-    Ok(Box::new(AnthropicClient::new(
-        api_key,
-        config.llm.model.clone(),
-    )))
+/// Create an LLM client. Tries API key first, falls back to Claude CLI (Max subscription).
+fn make_llm(config: &Config) -> Result<Box<dyn LlmClient>> {
+    match resolve_api_key(&config.llm) {
+        Ok(api_key) => {
+            println!("using Anthropic API key");
+            Ok(Box::new(AnthropicClient::new(api_key, config.llm.model.clone())))
+        }
+        Err(_) => {
+            println!("using Claude CLI (Max subscription)");
+            Ok(Box::new(ClaudeCliClient::max_subscription(config.llm.model.clone())))
+        }
+    }
 }
 
 #[tokio::main]

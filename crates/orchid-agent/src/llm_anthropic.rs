@@ -149,43 +149,7 @@ pub fn resolve_api_key(config: &orchid_core::config::LlmConfig) -> Result<String
         }
     }
 
-    // 3. Claude Max OAuth token from macOS keychain
-    if let Some(token) = read_claude_max_token() {
-        tracing::info!("using Claude Max OAuth token from keychain");
-        return Ok(token);
-    }
-
     anyhow::bail!(
-        "No API key found. Options:\n\
-         1. Set ANTHROPIC_API_KEY env var\n\
-         2. Add api_key to ~/.orchid/config.toml under [llm]\n\
-         3. Log in to Claude Code with a Max subscription (token read from keychain)"
+        "No API key found. Will fall back to Claude CLI (Max subscription)."
     )
-}
-
-/// Read the Claude Max OAuth access token from macOS keychain.
-/// Claude Code stores credentials under service "Claude Code-credentials".
-fn read_claude_max_token() -> Option<String> {
-    let output = std::process::Command::new("security")
-        .args([
-            "find-generic-password",
-            "-s",
-            "Claude Code-credentials",
-            "-w",
-        ])
-        .output()
-        .ok()?;
-
-    if !output.status.success() {
-        return None;
-    }
-
-    let json_str = String::from_utf8(output.stdout).ok()?;
-    let data: serde_json::Value = serde_json::from_str(json_str.trim()).ok()?;
-
-    // Extract claudeAiOauth.accessToken
-    data.get("claudeAiOauth")
-        .and_then(|oauth| oauth.get("accessToken"))
-        .and_then(|token| token.as_str())
-        .map(|s| s.to_string())
 }
