@@ -6,3 +6,4 @@
 *.swo
 *~
 .env
+.claude/worktrees/
