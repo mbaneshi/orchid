@@ -5,7 +5,11 @@ edition.workspace = true
 
 [dependencies]
 orchid-core.workspace = true
+orchid-agent.workspace = true
 anyhow.workspace = true
 ratatui.workspace = true
 crossterm.workspace = true
 tokio.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

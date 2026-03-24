@@ -71,7 +71,10 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Workspace => {
-            println!("launching TUI workspace (not yet implemented)");
+            let config = Config::load()?;
+            let llm = make_llm(&config)?;
+            let cwd = std::env::current_dir()?;
+            orchid_tui::run_with_llm(cwd, llm).await?;
         }
         Commands::Web => {
             println!("starting web server...");
